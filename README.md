@@ -1,0 +1,74 @@
+# TranscriberBot
+
+Телеграм-бот, который:
+
+- 🎙 принимает **голосовые сообщения, аудиофайлы и видеофайлы** и расшифровывает их в текст с помощью **Whisper** (реализация `faster-whisper`);
+- 💬 на **текстовые** сообщения отвечает локальной **LLM через Ollama** (по умолчанию `qwen2.5`).
+
+## Требования
+
+- Python 3.10+
+- [FFmpeg](https://ffmpeg.org/) в `PATH` (нужен для декодирования аудио/видео)
+- Запущенная [Ollama](https://ollama.com/) с нужной моделью
+- Токен бота от [@BotFather](https://t.me/BotFather)
+
+## Установка
+
+```bash
+python -m venv .venv
+# Windows:
+.venv\Scripts\activate
+# Linux/macOS:
+source .venv/bin/activate
+
+pip install -r requirements.txt
+```
+
+Установите FFmpeg:
+
+- **Windows:** `winget install Gyan.FFmpeg` (или `choco install ffmpeg`)
+- **Linux:** `sudo apt install ffmpeg`
+- **macOS:** `brew install ffmpeg`
+
+## Настройка
+
+1. Скопируйте `.env.example` в `.env` и заполните значения:
+
+```bash
+copy .env.example .env   # Windows
+cp .env.example .env      # Linux/macOS
+```
+
+2. Укажите `TELEGRAM_BOT_TOKEN`, при необходимости поменяйте модель Whisper и модель Ollama.
+
+## Ollama
+
+Запустите сервис и скачайте модель:
+
+```bash
+ollama serve
+ollama pull qwen2.5
+```
+
+> ⚠️ Модель `qwen3.5` в реестре Ollama не существует. Доступны, например, `qwen2.5`, `qwen3`.
+> Впишите имя реальной модели в `OLLAMA_MODEL` внутри `.env`.
+
+## Запуск
+
+```bash
+python bot.py
+```
+
+## Использование
+
+- `/start`, `/help` — краткая справка
+- `/reset` — очистить контекст диалога с LLM
+- Пришлите голосовое / аудио / видео → получите транскрипцию
+- Напишите текст → получите ответ LLM
+
+## Заметки
+
+- Telegram Bot API отдаёт ботам файлы **примерно до 20 МБ** — это ограничение платформы, а не бота. Настраивается через `MAX_FILE_MB`.
+- Первый запуск скачивает веса Whisper — это может занять время.
+- На CPU используйте `WHISPER_MODEL=small` + `WHISPER_COMPUTE_TYPE=int8`. На GPU (CUDA) — `WHISPER_DEVICE=cuda` + `WHISPER_COMPUTE_TYPE=float16` и модель `large-v3`.
+- История диалога хранится в памяти процесса (сбрасывается при перезапуске).

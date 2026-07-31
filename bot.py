@@ -139,6 +139,18 @@ def main() -> None:
     global config, transcriber, llm
 
     config = load_config()
+
+    # Прокси (Throne): весь внешний трафик — через него.
+    # Выставляем ДО первой загрузки весов Whisper, чтобы скачивание из HuggingFace
+    # (requests внутри huggingface_hub) тоже шло через прокси. Ollama на localhost
+    # исключаем через NO_PROXY (плюс trust_env=False в самом клиенте Ollama).
+    if config.proxy_url:
+        os.environ["HTTP_PROXY"] = config.proxy_url
+        os.environ["HTTPS_PROXY"] = config.proxy_url
+        os.environ["NO_PROXY"] = config.no_proxy
+        logger.info("Внешний трафик идёт через прокси %s (в обход: %s)",
+                    config.proxy_url, config.no_proxy)
+
     transcriber = Transcriber(
         model_size=config.whisper_model,
         device=config.whisper_device,
@@ -152,7 +164,11 @@ def main() -> None:
         history_limit=config.history_limit,
     )
 
-    app = Application.builder().token(config.telegram_token).build()
+    builder = Application.builder().token(config.telegram_token)
+    if config.proxy_url:
+        # И приём апдейтов (polling), и отправка/скачивание файлов — через прокси
+        builder = builder.proxy(config.proxy_url).get_updates_proxy(config.proxy_url)
+    app = builder.build()
 
     app.add_handler(CommandHandler("start", cmd_start))
     app.add_handler(CommandHandler("help", cmd_start))

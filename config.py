@@ -30,6 +30,10 @@ class Config:
     ollama_system_prompt: str
     history_limit: int
 
+    # Прокси (Throne)
+    proxy_url: str | None
+    no_proxy: str
+
     # Прочее
     max_file_mb: int
 
@@ -56,5 +60,7 @@ def load_config() -> Config:
             "Ты дружелюбный ассистент. Отвечай кратко и по делу на языке пользователя.",
         ),
         history_limit=int(_get("HISTORY_LIMIT", "10") or "10"),
+        proxy_url=_get("PROXY_URL") or None,
+        no_proxy=_get("NO_PROXY", "localhost,127.0.0.1"),
         max_file_mb=int(_get("MAX_FILE_MB", "20") or "20"),
     )

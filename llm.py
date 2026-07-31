@@ -47,7 +47,11 @@ class OllamaClient:
             "stream": False,
         }
 
-        async with httpx.AsyncClient(timeout=httpx.Timeout(300.0)) as client:
+        # trust_env=False: игнорируем *_PROXY из окружения — Ollama локальна и
+        # должна ходить напрямую, в обход прокси Throne.
+        async with httpx.AsyncClient(
+            timeout=httpx.Timeout(300.0), trust_env=False
+        ) as client:
             resp = await client.post(f"{self._base_url}/api/chat", json=payload)
             resp.raise_for_status()
             data = resp.json()

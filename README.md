@@ -79,6 +79,41 @@ SOCKS5-зависимости уже включены в `requirements.txt` (`py
 python bot.py
 ```
 
+## Управление службой
+
+Скрипты запускают бота в фоне (PID-файл + логи в `logs/`). Логи: `logs/bot.log` (stdout)
+и `logs/bot.err.log` (ошибки), PID — `logs/bot.pid`. Python берётся из `.venv`, если он есть,
+иначе системный.
+
+### macOS (`scripts/mac/`)
+
+Один раз сделайте скрипты исполняемыми:
+
+```bash
+chmod +x scripts/mac/*.sh
+```
+
+```bash
+./scripts/mac/start.sh     # запустить в фоне
+./scripts/mac/stop.sh      # остановить
+./scripts/mac/restart.sh   # перезапустить
+./scripts/mac/status.sh    # проверить статус
+```
+
+### Windows (`scripts/windows/`)
+
+```powershell
+.\scripts\windows\start.ps1     # запустить в фоне
+.\scripts\windows\stop.ps1      # остановить
+.\scripts\windows\restart.ps1   # перезапустить
+.\scripts\windows\status.ps1    # проверить статус
+```
+
+> Если PowerShell блокирует запуск скриптов:
+> ```powershell
+> Set-ExecutionPolicy -Scope CurrentUser RemoteSigned
+> ```
+
 ## Использование
 
 - `/start`, `/help` — краткая справка

@@ -17,6 +17,9 @@ def _get(name: str, default: str = "") -> str:
 class Config:
     # Telegram
     telegram_token: str
+    tg_base_url: str | None
+    tg_base_file_url: str | None
+    tg_local_mode: bool
 
     # Whisper
     whisper_model: str
@@ -47,8 +50,15 @@ def load_config() -> Config:
 
     language = _get("WHISPER_LANGUAGE") or None
 
+    base_url = _get("TELEGRAM_API_BASE_URL") or None
+    base_file_url = _get("TELEGRAM_API_BASE_FILE_URL") or None
+    local_mode = _get("TELEGRAM_LOCAL_MODE", "false").lower() in ("1", "true", "yes")
+
     return Config(
         telegram_token=token,
+        tg_base_url=base_url,
+        tg_base_file_url=base_file_url,
+        tg_local_mode=local_mode,
         whisper_model=_get("WHISPER_MODEL", "small"),
         whisper_device=_get("WHISPER_DEVICE", "cpu"),
         whisper_compute_type=_get("WHISPER_COMPUTE_TYPE", "int8"),

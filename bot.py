@@ -165,9 +165,23 @@ def main() -> None:
     )
 
     builder = Application.builder().token(config.telegram_token)
-    if config.proxy_url:
-        # И приём апдейтов (polling), и отправка/скачивание файлов — через прокси
+
+    if config.tg_base_url:
+        # Локальный Telegram Bot API сервер (снимает лимит 20 МБ на скачивание,
+        # позволяет файлы до 2000 МБ). Соединение с ним локальное (localhost),
+        # поэтому прокси к нему НЕ применяем — во внешний Telegram ходит сам сервер.
+        builder = builder.base_url(config.tg_base_url)
+        if config.tg_base_file_url:
+            builder = builder.base_file_url(config.tg_base_file_url)
+        if config.tg_local_mode:
+            # file_path приходит как локальный путь — файл берётся с диска напрямую
+            builder = builder.local_mode(True)
+        logger.info("Использую локальный Bot API: %s (local_mode=%s)",
+                    config.tg_base_url, config.tg_local_mode)
+    elif config.proxy_url:
+        # Публичный api.telegram.org — и polling, и отправка/скачивание через прокси
         builder = builder.proxy(config.proxy_url).get_updates_proxy(config.proxy_url)
+
     app = builder.build()
 
     app.add_handler(CommandHandler("start", cmd_start))

@@ -3,3 +3,5 @@ __pycache__/
 *.pyc
 .env
 logs/
+telegram-bot-api/
+tg-bot-api-files/

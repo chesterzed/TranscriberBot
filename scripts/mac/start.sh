@@ -11,6 +11,8 @@ fi
 
 mkdir -p "$LOG_DIR"
 
+activate_venv
+
 echo "Запуск бота ($PYTHON bot.py)..."
 cd "$PROJECT_ROOT"
 nohup "$PYTHON" bot.py >>"$LOG_FILE" 2>>"$ERR_FILE" &

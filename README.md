@@ -59,29 +59,61 @@ ollama pull qwen2.5
 Telegram, его нельзя обойти настройкой бота. Чтобы принимать файлы до **2000 МБ**,
 на Mac mini поднимается собственный сервер [telegram-bot-api](https://github.com/tdlib/telegram-bot-api).
 
-**1. Установите сервер:**
+**1. Соберите сервер из исходников.**
+Готовой формулы `telegram-bot-api` в Homebrew больше нет, сервер собирается вручную
+(разово, ~5–15 мин). Из корня проекта:
 
 ```bash
-brew install telegram-bot-api
+xcode-select --install                       # если ещё не установлен
+brew install cmake gperf openssl
+git clone --recursive https://github.com/tdlib/telegram-bot-api.git
+cd telegram-bot-api && rm -rf build && mkdir build && cd build
+cmake -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX:PATH=.. \
+      -DOPENSSL_ROOT_DIR="$(brew --prefix openssl)" ..
+cmake --build . --target install -j
+cd ../..
 ```
+
+Бинарник появится в `telegram-bot-api/bin/telegram-bot-api`
+(`-DOPENSSL_ROOT_DIR` нужен, чтобы cmake нашёл openssl из Homebrew).
 
 **2. Получите `api_id` и `api_hash`** на https://my.telegram.org → *API development tools*
 (это данные вашего аккаунта Telegram, не бота).
 
-**3. Запустите сервер в local-режиме:**
-
-```bash
-telegram-bot-api --local --api-id=ВАШ_API_ID --api-hash=ВАШ_API_HASH --http-port=8081
-```
-
-**4. Пропишите в `.env`:**
+**3. Пропишите в `.env`** параметры сервера и переключите бота на локальный API:
 
 ```
+# запуск сервера (для scripts/mac/server-*.sh)
+TELEGRAM_API_ID=ВАШ_API_ID
+TELEGRAM_API_HASH=ВАШ_API_HASH
+TELEGRAM_BOT_API_BIN=./telegram-bot-api/bin/telegram-bot-api
+TELEGRAM_BOT_API_PORT=8081
+TELEGRAM_BOT_API_DIR=./tg-bot-api-files
+
+# бот → локальный сервер
 TELEGRAM_API_BASE_URL=http://127.0.0.1:8081/bot
 TELEGRAM_API_BASE_FILE_URL=http://127.0.0.1:8081/file/bot
 TELEGRAM_LOCAL_MODE=true
 MAX_FILE_MB=2000
 ```
+
+**4. Запустите сервер** (в фоне, скриптом):
+
+```bash
+chmod +x scripts/mac/*.sh
+./scripts/mac/server-start.sh     # старт сервера
+./scripts/mac/server-status.sh    # статус
+./scripts/mac/server-stop.sh      # остановка
+```
+
+Проверить, что сервер живой:
+
+```bash
+curl "http://127.0.0.1:8081/bot<ВАШ_ТОКЕН>/getMe"
+```
+
+Ответ с `"ok":true` — сервер работает. После этого запускайте бота
+(`./scripts/mac/start.sh`).
 
 После этого бот скачивает большие файлы напрямую с диска (в local-режиме `getFile`
 возвращает локальный путь), лимит 20 МБ снят.
@@ -99,6 +131,10 @@ MAX_FILE_MB=2000
 > через Throne в системном/TUN-режиме — сервер попадёт под него автоматически.
 > При использовании локального сервера `PROXY_URL` к Telegram-соединению не применяется
 > (остаётся только для скачивания весов Whisper с HuggingFace).
+
+> **Диск:** в local-режиме сервер складывает принятые файлы в `TELEGRAM_BOT_API_DIR`
+> (`./tg-bot-api-files`) и **не удаляет их автоматически**. При больших файлах папка
+> будет расти — периодически чистите её (cron/launchd) или удаляйте файлы после обработки.
 
 ## Прокси (Throne)
 

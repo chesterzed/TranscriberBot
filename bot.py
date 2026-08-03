@@ -1,11 +1,17 @@
 """Telegram-бот: транскрибация голоса/аудио/видео (Whisper) + ответы LLM (Ollama)."""
 from __future__ import annotations
 
+import html
 import logging
 import os
 import tempfile
 
-from telegram import Update
+from telegram import (
+    CopyTextButton,
+    InlineKeyboardButton,
+    InlineKeyboardMarkup,
+    Update,
+)
 from telegram.constants import ChatAction
 from telegram.ext import (
     Application,
@@ -114,7 +120,7 @@ async def handle_media(update: Update, context: ContextTypes.DEFAULT_TYPE) -> No
             return
 
         await status.delete()
-        await _reply_long(update, f"📝 *Транскрипция:*\n\n{text}", markdown=True)
+        await send_transcription(update, text)
     except Exception as exc:  # noqa: BLE001
         logger.exception("Ошибка транскрибации")
         await status.edit_text(f"⚠️ Не удалось расшифровать файл.\n\n{exc}")
@@ -124,6 +130,44 @@ async def handle_media(update: Update, context: ContextTypes.DEFAULT_TYPE) -> No
 
 
 # ---------- Утилиты ----------
+
+# Лимит текста у кнопки CopyTextButton (ограничение Telegram Bot API).
+COPY_LIMIT = 256
+TRANSCRIPT_HEADER = "📝 Транскрипция:"
+
+
+async def send_transcription(update: Update, text: str) -> None:
+    """Отправляет транскрипцию с возможностью копирования.
+
+    Короткий текст (<= 256) — с inline-кнопкой «Копировать» (кладёт текст в буфер).
+    Длинный — моно-блоком <pre>, у которого своя нативная иконка копирования
+    (кнопка CopyTextButton не вмещает больше 256 символов).
+    """
+    if len(text) <= COPY_LIMIT:
+        keyboard = InlineKeyboardMarkup(
+            [[InlineKeyboardButton("📋 Копировать", copy_text=CopyTextButton(text=text))]]
+        )
+        await update.message.reply_text(
+            f"{TRANSCRIPT_HEADER}\n\n{text}", reply_markup=keyboard
+        )
+    else:
+        await _reply_code_blocks(update, text, TRANSCRIPT_HEADER)
+
+
+async def _reply_code_blocks(update: Update, text: str, header: str) -> None:
+    """Длинный текст — моно-блоками <pre> (Telegram даёт им иконку копирования).
+
+    Режем с запасом под теги и лимит сообщения 4096. Заголовок — только на первом.
+    """
+    limit = 3500
+    chunks = [text[i : i + limit] for i in range(0, len(text), limit)] or [text]
+    for idx, chunk in enumerate(chunks):
+        prefix = f"{header}\n" if idx == 0 else ""
+        await update.message.reply_text(
+            f"{prefix}<pre>{html.escape(chunk)}</pre>",
+            parse_mode="HTML",
+        )
+
 
 async def _reply_long(update: Update, text: str, markdown: bool = False) -> None:
     """Telegram ограничивает сообщение 4096 символами — режем на части."""

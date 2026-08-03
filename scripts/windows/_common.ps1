@@ -7,9 +7,12 @@ $PidFile     = Join-Path $LogDir "bot.pid"
 $LogFile     = Join-Path $LogDir "bot.log"
 $ErrFile     = Join-Path $LogDir "bot.err.log"
 
-# Python из виртуального окружения, если есть; иначе системный python.
-$VenvPython = Join-Path $ProjectRoot ".venv\Scripts\python.exe"
-if (Test-Path $VenvPython) {
+# Python из виртуального окружения (.venv или venv), если есть; иначе системный python.
+$VenvDotPython = Join-Path $ProjectRoot ".venv\Scripts\python.exe"
+$VenvPython    = Join-Path $ProjectRoot "venv\Scripts\python.exe"
+if (Test-Path $VenvDotPython) {
+    $Python = $VenvDotPython
+} elseif (Test-Path $VenvPython) {
     $Python = $VenvPython
 } else {
     $Python = "python"
